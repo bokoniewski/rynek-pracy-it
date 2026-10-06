@@ -1,4 +1,4 @@
-# Data-Pipeline-rynek-pracy-IT
+# Rynek-pracy-IT
 
 
 ### Automatyczny pipeline danych zbierający codziennie oferty pracy z polskich portali IT, przetwarzający je przez trójwarstwową architekturę Medallion i dostarczający zagregowane statystyki rynku gotowe do analizy BI.
