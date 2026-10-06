@@ -1,0 +1,8 @@
+# .gitattributes
+
+# Pliki w airflow_prod/ zawsze LF (dla Dockera/Linux)
+airflow_prod/**/*.py       text eol=lf
+airflow_prod/**/*.sql      text eol=lf
+airflow_prod/**/*.yaml     text eol=lf
+airflow_prod/**/*.yml      text eol=lf
+airflow_prod/Dockerfile    text eol=lf

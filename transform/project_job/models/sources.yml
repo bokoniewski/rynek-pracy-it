@@ -1,0 +1,120 @@
+version: 2
+
+sources:
+  - name: bronze
+    schema: bronze
+    tables:
+      - name: raw_offers_pracuj   # nazwa obiektu w dbt, która będzie używana w modelach (alias)
+        identifier: raw_offers_pracuj # nazwa obiektu w bazie danych
+
+      - name: raw_offers_joinit
+        identifier: raw_offers_joinit
+
+      - name: raw_offers_nofluff
+        identifier: raw_offers_nofluff
+
+      - name: raw_offers_protocol
+        identifier: raw_offers_protocol
+
+      - name: audit_file_log
+        identifier: audit_file_log
+
+
+  - name: silver
+    schema: silver
+    tables:
+      - name: def_portal
+        identifier: def_portal
+
+      - name: def_requirement_type
+        identifier: def_requirement_type
+
+      - name: offer_benefits
+        identifier: offer_benefits
+
+      - name: offer_contracts
+        identifier: offer_contracts
+
+      - name: offer_levels
+        identifier: offer_levels
+
+      - name: offer_locations
+        identifier: offer_locations
+
+      - name: offer_modes
+        identifier: offer_modes
+
+      - name: offer_requirements
+        identifier: offer_requirements
+
+      - name: offer_responsibilities
+        identifier: offer_responsibilities
+
+      - name: offer_salaries
+        identifier: offer_salaries
+
+      - name: offer_schedules
+        identifier: offer_schedules
+
+      - name: offer_specs
+        identifier: offer_specs
+
+      - name: offer_technologies
+        identifier: offer_technologies
+
+      - name: offers
+        identifier: offers
+
+  - name: gold
+    schema: gold
+    tables:
+      - name: d_benefit
+        identifier: d_benefit
+
+      - name: d_contract
+        identifier: d_contract
+
+      - name: d_date
+        identifier: d_date
+      
+      - name: d_level
+        identifier: d_level
+
+      - name: d_location
+        identifier: d_location
+
+      - name: d_mode
+        identifier: d_mode
+
+      - name: d_requirement_type
+        identifier: d_requirement_type  
+      
+      - name: d_specs
+        identifier: d_specs  
+      
+      - name: d_technology
+        identifier: d_technology
+
+      - name: f_day_offers
+        identifier: f_day_offers
+
+      - name: f_day_offers_loc
+        identifier: f_day_offers_loc
+
+      - name: f_day_salaries
+        identifier: f_day_salaries
+
+      - name: f_month_offers_agg
+        identifier: f_month_offers_agg
+
+      - name: f_month_offers_loc_agg
+        identifier: f_month_offers_loc_agg
+      
+      - name: f_month_salaries_agg
+        identifier: f_month_salaries_agg
+
+      
+
+      
+
+      

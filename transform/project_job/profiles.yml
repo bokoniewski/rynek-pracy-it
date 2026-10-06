@@ -1,0 +1,20 @@
+project_job:
+  target: dev
+  outputs:
+    dev:
+      type: postgres
+      # Gdy chcesz uruchomic dbt bezposrednio z terminala musisz miec ustawione zmienne środowiskowe LUB -->
+      # --> odkomentować poniższe linijki, uzupełnić dane do połączenia z bazą danych a obecnie ustawione zmienne środowiskowe zakommentować
+      #host: "{{ env_var('DB_HOST', 'localhost') }}"
+      #port: "{{ env_var('DB_PORT', '5432') | int }}"
+      #dbname: "{{ env_var('DB_NAME', '<nazwa bazy>') }}"
+      #user: "{{ env_var('DB_USER', '<nazwa usera>') }}"
+      #password: "{{ env_var('DB_PASSWORD', '<password>') }}"
+      host: "{{ env_var('DB_HOST') }}"
+      port: "{{ env_var('DB_PORT') | int }}"
+      dbname: "{{ env_var('DB_NAME') }}"
+      user: "{{ env_var('DB_USER') }}"
+      password: "{{ env_var('DB_PASSWORD') }}"
+      
+      schema: silver
+      threads: 4

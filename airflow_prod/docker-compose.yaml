@@ -1,0 +1,172 @@
+# airflow_prod/docker-compose.yaml
+# Airflow z lokalnym PostgreSQL na Windows + Selenium Grid
+# Uruchomienie:
+#   1. Pierwsze uruchomienie: docker compose up airflow-init
+#   2. Start:                 docker compose up -d
+#   3. Stop:                  docker compose down
+#   4. Logi:                  docker compose logs -f airflow-webserver
+
+
+# ── Wspólne ustawienia dla wszystkich serwisów Airflow ───────────────────────
+x-airflow-common: &airflow-common
+  build:
+    context: ..                          # katalog główny projektu (gdzie są requirements*.txt)
+    dockerfile: airflow_prod/Dockerfile
+  environment:
+    # ── Baza metadanych Airflow (osobna od Twojej bazy projektowej!) ─────────
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${AIRFLOW_DB_USER}:${AIRFLOW_DB_PASSWORD}@postgres-airflow:${AIRFLOW_DB_PORT}/${AIRFLOW_DB_NAME}
+
+    # ── Core ─────────────────────────────────────────────────────────────────
+    AIRFLOW__CORE__EXECUTOR: LocalExecutor
+    AIRFLOW__CORE__FERNET_KEY: ''
+    AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'true'
+    AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
+
+    # ── Webserver ─────────────────────────────────────────────────────────────
+    AIRFLOW__WEBSERVER__EXPOSE_CONFIG: 'true'
+
+    # ── Połączenie z Twoją bazą projektową (PostgreSQL na Windows) ───────────
+    # host.docker.internal = localhost Windowsa widziany z kontenera
+    AIRFLOW_CONN_POSTGRES_MAIN: postgresql://${POSTGRES_LOCAL_USER}:${POSTGRES_LOCAL_PASSWORD}@host.docker.internal:${POSTGRES_LOCAL_PORT}/${POSTGRES_LOCAL_DB}
+    
+    # ── Połączenie dla loaderów ──────────────────────────────────────────
+    DB_HOST: host.docker.internal
+    DB_PORT: ${DB_PORT}
+    DB_USER: ${DB_USER}
+    DB_PASSWORD: ${DB_PASSWORD}
+    DB_NAME: ${DB_NAME}
+    
+    # ── Połączenie do serwera pocztowego ──────────────────────────────────────────
+    SENDGRID_API_KEY: ${SENDGRID_API_KEY}
+    REPORT_EMAIL: ${REPORT_EMAIL}
+    SENDER_EMAIL: ${SENDER_EMAIL}
+    
+    # ── Strefa czasowa ───────────────────────────────────────────────────────
+    AIRFLOW__CORE__DEFAULT_TIMEZONE: Europe/Warsaw
+    TZ: Europe/Warsaw
+
+    # ── Python path — żeby Airflow widział moduły projektu ───────────────────
+    PYTHONPATH: /opt/airflow
+
+    # ── Selenium Grid URL — używane przez scrapery ───────────────────────────
+    SELENIUM_URL: http://selenium:4444/wd/hub
+
+  volumes:
+    # DAG-i
+    - ./dags:/opt/airflow/dags
+    # Logi Airflow
+    - ./logs:/opt/airflow/logs
+    # Pluginy (opcjonalne)
+    - ./plugins:/opt/airflow/plugins
+
+    # ── Foldery projektu montowane do kontenera ──────────────────────────────
+    - ../scraper:/opt/airflow/scraper
+    - ../loaders:/opt/airflow/loaders
+    - ../transform:/opt/airflow/transform
+    - ../data:/opt/airflow/data
+    - ../config:/opt/airflow/config
+
+  depends_on:
+    postgres-airflow:
+      condition: service_healthy
+    selenium:
+      condition: service_healthy
+  networks:
+    - airflow-network
+
+
+# ── Serwisy ──────────────────────────────────────────────────────────────────
+services:
+
+  # ── PostgreSQL dla metadanych Airflow (OSOBNA baza od Twojej projektowej) ──
+  postgres-airflow:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: ${AIRFLOW_DB_USER}
+      POSTGRES_PASSWORD: ${AIRFLOW_DB_PASSWORD}
+      POSTGRES_DB: ${AIRFLOW_DB_NAME}
+    volumes:
+      - postgres-airflow-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "airflow"]
+      interval: 10s
+      retries: 5
+      start_period: 5s
+    networks:
+      - airflow-network
+    restart: unless-stopped
+
+  # ── Selenium Grid — kontener z Chrome do scraperów ───────────────────────
+  selenium:
+    image: selenium/standalone-chrome:latest
+    shm_size: 6gb
+    environment:
+      - SE_NODE_MAX_SESSIONS=16
+      - SE_SESSION_REQUEST_TIMEOUT=300
+      - SE_VNC_PASSWORD=${SELENIUM_VNC_PASSWORD}
+    ports:
+      - "4444:4444"   # Selenium Grid UI: http://localhost:4444
+      - "7900:7900"   # VNC — podgląd przeglądarki: http://localhost:7900 (hasło: secret)
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:4444/wd/hub/status"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 15s
+    networks:
+      - airflow-network
+    restart: unless-stopped
+
+  # ── Airflow Init — uruchom raz przed pierwszym startem ───────────────────
+  airflow-init:
+    <<: *airflow-common
+    entrypoint: /bin/bash
+    command:
+      - -c
+      - |
+        airflow db migrate
+        airflow users create \
+          --username ${AIRFLOW_ADMIN_USERNAME} \
+          --firstname Admin \
+          --lastname User \
+          --role Admin \
+          --email ${AIRFLOW_ADMIN_EMAIL} \
+          --password ${AIRFLOW_ADMIN_PASSWORD}
+    restart: on-failure
+
+  # ── Airflow Webserver — UI dostępne na http://localhost:8080 ─────────────
+  airflow-webserver:
+    <<: *airflow-common
+    command: webserver
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+
+  # ── Airflow Scheduler — serce Airflow, uruchamia DAG-i ───────────────────
+  airflow-scheduler:
+    <<: *airflow-common
+    command: scheduler
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8974/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+
+
+# ── Wolumeny ─────────────────────────────────────────────────────────────────
+volumes:
+  postgres-airflow-data:
+
+
+# ── Sieć ─────────────────────────────────────────────────────────────────────
+networks:
+  airflow-network:
+    driver: bridge

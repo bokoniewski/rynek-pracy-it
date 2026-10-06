@@ -1,0 +1,4 @@
+openpyxl==3.1.5
+yagmail==0.15.293
+sendgrid==6.11.0
+reportlab==4.2.5
