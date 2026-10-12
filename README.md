@@ -3,7 +3,7 @@
 
 ### Automatyczny pipeline danych zbierający codziennie oferty pracy z polskich portali IT, przetwarzający je przez trójwarstwową architekturę Medallion i dostarczający zagregowane statystyki rynku gotowe do analizy BI.
 
-**Autor:** Bartłomiej Okoniewski · [github.com/bokoniewski](https://github.com/bokoniewski)
+**Autor:** Bartłomiej Okoniewski · [www.bokoniewski.pl](https://bokoniewski.pl)
 
 ---
 
